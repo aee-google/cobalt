@@ -38,7 +38,7 @@ base::Optional<uint32_t> GetMinSizeToCacheInBytes(
     network::disk_cache::ResourceType resource_type) {
   switch (resource_type) {
     case network::disk_cache::ResourceType::kCompiledScript:
-      return 4096u;
+      return 1024u;
     case network::disk_cache::ResourceType::kServiceWorkerScript:
       return 1u;
     default:

@@ -66,6 +66,9 @@
 
     // Not part of the spec. Enable verbose XHR logging.
     static attribute boolean verbose;
+
+    // Not part of the spec. Tries to cache compiled Javascript if possible.
+    attribute boolean cacheCompiledJs;
 };
 
 // TODO: The IDL defines EventHandler as a nullable callback function. Define it

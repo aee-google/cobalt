@@ -40,10 +40,14 @@
 #include "cobalt/network/network_module.h"
 #include "cobalt/script/global_environment.h"
 #include "cobalt/script/javascript_engine.h"
+#include "cobalt/script/source_code.h"
+#include "cobalt/script/v8c/entry_scope.h"
 #include "cobalt/web/context.h"
 #include "cobalt/web/csp_delegate.h"
 #include "cobalt/web/environment_settings.h"
+#include "cobalt/web/environment_settings_helper.h"
 #include "cobalt/xhr/global_stats.h"
+#include "net/base/mime_util.h"
 #include "net/http/http_util.h"
 
 namespace cobalt {
@@ -342,6 +346,13 @@ void XMLHttpRequest::TraceMembers(script::Tracer* tracer) {
   xhr_impl_->TraceMembers(tracer);
 }
 
+void XMLHttpRequest::set_cache_compiled_js(bool cache_compiled_js) {
+  xhr_impl_->set_cache_compiled_js(cache_compiled_js);
+}
+bool XMLHttpRequest::cache_compiled_js() {
+  return xhr_impl_->cache_compiled_js();
+}
+
 XMLHttpRequestImpl::XMLHttpRequestImpl(XMLHttpRequest* xhr)
     : error_(false),
       is_cross_origin_(false),
@@ -517,6 +528,45 @@ void XMLHttpRequestImpl::OverrideMimeType(
 void XMLHttpRequestImpl::Send(
     const base::Optional<XMLHttpRequest::RequestBodyType>& request_body,
     script::ExceptionState* exception_state) {
+  network::NetworkModule* network_module =
+      environment_settings()->context()->fetcher_factory()->network_module();
+  std::string mime_type;
+  std::string content_type;
+  if (request_headers_.GetHeader(net::HttpRequestHeaders::kContentType,
+                                 &content_type)) {
+    std::string charset;
+    bool had_charset;
+    net::HttpUtil::ParseContentType(content_type, &mime_type, &charset,
+                                    &had_charset, nullptr);
+  }
+  if (mime_type.empty()) {
+    std::string file_name = request_url_.ExtractFileName();
+    size_t dot_position = file_name.rfind('.');
+    if (dot_position != std::string::npos) {
+      std::string ext = file_name.substr(dot_position + 1);
+      net::GetWellKnownMimeTypeFromExtension(ext, &mime_type);
+    }
+  }
+  if (!mime_type.empty()) {
+    network::disk_cache::ResourceType resource_type =
+        network::disk_cache::kOther;
+    if (mime_type == "text/html") {
+      resource_type = network::disk_cache::kHTML;
+    } else if (mime_type == "text/css") {
+      resource_type = network::disk_cache::kCSS;
+    } else if (net::IsSupportedImageMimeType(mime_type)) {
+      resource_type = network::disk_cache::kImage;
+    } else if (mime_type == "application/font-woff") {
+      resource_type = network::disk_cache::kFont;
+    } else if (mime_type == "text/javascript") {
+      resource_type = network::disk_cache::kUncompiledScript;
+    }
+    if (resource_type != network::disk_cache::kOther) {
+      std::string key = net::HttpUtil::SpecForRequest(request_url_);
+      network_module->url_request_context()->AssociateKeyWithResourceType(
+          key, resource_type);
+    }
+  }
   error_ = false;
   auto* context = environment_settings()->context();
   bool in_service_worker =
@@ -1086,6 +1136,25 @@ void XMLHttpRequestImpl::OnURLFetchComplete(const net::URLFetcher* source) {
 
   fetch_callback_.reset();
   fetch_mode_callback_.reset();
+
+  if (cache_compiled_js_) {
+    bool response_is_string = response_type_ == XMLHttpRequest::kDefault ||
+                              response_type_ == XMLHttpRequest::kText;
+    bool ok_status = status.is_success() && http_status_ >= 200 &&
+                     http_status_ <= 299 && http_status_ != 206;
+    bool mime_type_is_javascript =
+        response_mime_type_ == "text/javascript" ||
+        response_mime_type_ == "application/javascript";
+    if (response_is_string && ok_status && mime_type_is_javascript) {
+      auto* global_environment = get_global_environment(settings_);
+      auto* isolate = global_environment->isolate();
+      script::v8c::EntryScope entry_scope(isolate);
+      // TODO: compile async or maybe don't cache if compile fails.
+      global_environment->Compile(script::SourceCode::CreateSourceCode(
+          response_text(/*exception_state=*/nullptr),
+          base::SourceLocation(__FILE__, 1, 1)));
+    }
+  }
 }
 
 void XMLHttpRequestImpl::OnURLFetchUploadProgress(const net::URLFetcher* source,

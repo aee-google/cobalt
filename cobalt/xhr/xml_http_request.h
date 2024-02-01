@@ -202,6 +202,9 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget,
   DEFINE_WRAPPABLE_TYPE(XMLHttpRequest);
   void TraceMembers(script::Tracer* tracer) override;
 
+  void set_cache_compiled_js(bool cache_compiled_js);
+  bool cache_compiled_js();
+
  protected:
   ~XMLHttpRequest() override;
 
@@ -320,6 +323,11 @@ class XMLHttpRequestImpl
   friend std::ostream& operator<<(std::ostream& os, const XMLHttpRequest& xhr);
   void TraceMembers(script::Tracer* tracer);
 
+  void set_cache_compiled_js(bool cache_compiled_js) {
+    cache_compiled_js_ = cache_compiled_js;
+  }
+  bool cache_compiled_js() { return cache_compiled_js_; }
+
  protected:
   void CORSPreflightErrorCallback();
   void CORSPreflightSuccessCallback();
@@ -367,6 +375,7 @@ class XMLHttpRequestImpl
   std::string response_mime_type_;
   std::unique_ptr<net::URLFetcher> url_fetcher_;
   int url_fetcher_generation_ = -1;
+  bool cache_compiled_js_ = false;
 
  private:
   FRIEND_TEST_ALL_PREFIXES(XhrTest, GetResponseHeader);

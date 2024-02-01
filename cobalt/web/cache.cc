@@ -437,7 +437,8 @@ void Cache::OnFetchCompletedMainThread(uint32_t key, bool success) {
     cache::Cache::GetInstance()->Store(
         kResourceType, key, fetcher->BufferToVector(), std::move(metadata));
   }
-  if (fetcher->mime_type() == "text/javascript") {
+  if (fetcher->mime_type() == "text/javascript" ||
+      fetcher->mime_type() == "application/javascript") {
     auto* environment_settings = fetch_contexts_[key].second;
     auto* global_environment = get_global_environment(environment_settings);
     auto* isolate = global_environment->isolate();
