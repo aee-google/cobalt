@@ -24,8 +24,6 @@
 #include "content/shell/browser/shell_browser_main_parts.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 
-#include "base/logging.h"
-
 namespace cobalt {
 
 // TODO(b/390021478): When CobaltContentBrowserClient stops deriving from
@@ -83,7 +81,8 @@ blink::UserAgentMetadata GetCobaltUserAgentMetadata() {
   return metadata;
 }
 
-CobaltContentBrowserClient::CobaltContentBrowserClient() = default;
+CobaltContentBrowserClient::CobaltContentBrowserClient(bool first_client)
+    : first_client_(first_client) {}
 
 CobaltContentBrowserClient::~CobaltContentBrowserClient() = default;
 
@@ -121,10 +120,13 @@ void CobaltContentBrowserClient::OverrideWebkitPrefs(
 #endif  // !defined(COBALT_IS_RELEASE_BUILD)
   content::ShellContentBrowserClient::OverrideWebkitPrefs(web_contents, prefs);
 }
+
 void CobaltContentBrowserClient::OnWebContentsCreated(
     content::WebContents* web_contents) {
-  web_contents_observer_.reset(new CobaltWebContentsObserver(web_contents));
+  web_contents_observer_.reset(
+      new CobaltWebContentsObserver(web_contents, first_client_));
 }
+
 void CobaltContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
     content::RenderFrameHost* render_frame_host,
     mojo::BinderMapWithContext<content::RenderFrameHost*>* map) {

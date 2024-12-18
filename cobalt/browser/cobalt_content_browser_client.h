@@ -38,7 +38,7 @@ namespace cobalt {
 // a demo around Content.
 class CobaltContentBrowserClient : public content::ShellContentBrowserClient {
  public:
-  CobaltContentBrowserClient();
+  CobaltContentBrowserClient(bool first_client);
   ~CobaltContentBrowserClient() override;
 
   // ShellContentBrowserClient overrides.
@@ -58,6 +58,7 @@ class CobaltContentBrowserClient : public content::ShellContentBrowserClient {
 
  private:
   std::unique_ptr<CobaltWebContentsObserver> web_contents_observer_;
+  bool first_client_;
 };
 
 }  // namespace cobalt

@@ -49,6 +49,7 @@ class CobaltMainDelegate : public content::ShellMainDelegate {
  private:
   std::unique_ptr<content::BrowserMainRunner> main_runner_;
   std::unique_ptr<CobaltContentRendererClient> renderer_client_;
+  bool first_client_;
 };
 
 }  // namespace cobalt

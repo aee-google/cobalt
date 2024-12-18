@@ -24,13 +24,15 @@
 namespace cobalt {
 
 CobaltMainDelegate::CobaltMainDelegate(bool is_content_browsertests)
-    : content::ShellMainDelegate(is_content_browsertests) {}
+    : content::ShellMainDelegate(is_content_browsertests),
+      first_client_(true) {}
 
 CobaltMainDelegate::~CobaltMainDelegate() {}
 
 content::ContentBrowserClient*
 CobaltMainDelegate::CreateContentBrowserClient() {
-  browser_client_ = std::make_unique<CobaltContentBrowserClient>();
+  browser_client_ = std::make_unique<CobaltContentBrowserClient>(first_client_);
+  first_client_ = false;
   return browser_client_.get();
 }
 

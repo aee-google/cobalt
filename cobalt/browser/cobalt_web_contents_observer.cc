@@ -16,12 +16,17 @@
 
 #include "base/strings/utf_string_conversions.h"
 #include "cobalt/browser/embedded_resources/embedded_js.h"
+#include "cobalt/browser/migrate_storage_record/migration_manager.h"
+#include "content/public/browser/web_contents.h"
 
 namespace cobalt {
 
 CobaltWebContentsObserver::CobaltWebContentsObserver(
-    content::WebContents* web_contents)
-    : content::WebContentsObserver(web_contents) {
+    content::WebContents* web_contents,
+    bool first_client)
+    : content::WebContentsObserver(web_contents),
+      first_client_(first_client),
+      do_migration_tasks_called_(false) {
   // Create browser-side mojo service component
   js_communication_host_ =
       std::make_unique<js_injection::JsCommunicationHost>(web_contents);
@@ -53,9 +58,13 @@ void CobaltWebContentsObserver::RegisterInjectedJavaScript() {
   }
 }
 
-// Placeholder for a WebContentsObserver override
 void CobaltWebContentsObserver::PrimaryMainDocumentElementAvailable() {
-  LOG(INFO) << "Cobalt::PrimaryMainDocumentElementAvailable";
+  // Only check for migration if this is the first client created and if
+  // |DoMigrationTasks()| was not already called for this observer.
+  if (first_client_ && !do_migration_tasks_called_) {
+    do_migration_tasks_called_ = true;
+    migrate_storage_record::DoMigrationTasks(web_contents());
+  }
 }
 
 }  // namespace cobalt

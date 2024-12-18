@@ -34,11 +34,21 @@ source_set("browser") {
     "//cobalt/browser/h5vcc_runtime/public/mojom",
     "//cobalt/browser/h5vcc_system",
     "//cobalt/browser/h5vcc_system/public/mojom",
+    "//cobalt/browser/migrate_storage_record",
     "//cobalt/user_agent",
     "//components/js_injection/browser:browser",
     "//content/public/browser",
     "//content/shell:content_shell_lib",
   ]
+}
+
+source_set("switches") {
+  sources = [
+    "switches.cc",
+    "switches.h",
+  ]
+
+  deps = [ "//base" ]
 }
 
 config("embed_polyfilled_javascript_config") {

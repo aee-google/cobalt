@@ -24,7 +24,8 @@ namespace cobalt {
 
 class CobaltWebContentsObserver : public content::WebContentsObserver {
  public:
-  explicit CobaltWebContentsObserver(content::WebContents* web_contents);
+  CobaltWebContentsObserver(content::WebContents* web_contents,
+                            bool first_client);
 
   void PrimaryMainDocumentElementAvailable() override;
 
@@ -32,6 +33,8 @@ class CobaltWebContentsObserver : public content::WebContentsObserver {
   void RegisterInjectedJavaScript();
 
   std::unique_ptr<js_injection::JsCommunicationHost> js_communication_host_;
+  bool first_client_;
+  bool do_migration_tasks_called_;
 };
 
 }  // namespace cobalt
